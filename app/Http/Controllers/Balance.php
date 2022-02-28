@@ -25,9 +25,9 @@ class Balance extends Controller
         ));
 
         if(empty($Cl)){
-            return response()->json(["no client found"],404);
+            return response()->json(array(0),404);
         } else {
-            return response()->json($Cl,200);
+            return response()->json($Cl[0]->balance,200);
         }
 
     }
@@ -43,27 +43,6 @@ class Balance extends Controller
         switch($type){
             case "withdraw":
 
-                $totalNow = $this->searchBalance($destination);
-
-                //var_dump($totalNow); die();
-                if(!empty($totalNow)){
-                    $tt = $totalNow[0]->balance;
-                    if($amount < $tt){
-                        $this->debitBalance($destination, $amount);
-                        return response()->json(['message' => 'Withdraw performed sucessfully!'], 200);
-                    }else {
-                        return response()->json(['message' => 'user\'s balace isnt enought!'], 406);
-                     
-                    }
-                } else {
-                    return response()->json(['message' => 'user not exist!'], 404);
-                }
-
-            break;
-
-
-            case "transfer":
-
                 $totalNow = $this->searchBalance($origin);
 
                 //var_dump($totalNow); die();
@@ -71,9 +50,46 @@ class Balance extends Controller
                     $tt = $totalNow[0]->balance;
                     if($amount < $tt){
                         $this->debitBalance($origin, $amount);
+
+                        $balance = $this->searchBalance($origin);
+                        $array =  array("id" => $origin,"balance" => $balance[0]->balance);
+
+
+                        return response()->json($array, 201);
+                    }else {
+                        return response()->json(['message' => 'user\'s balace isnt enought!'], 406);
+                     
+                    }
+                } else {
+                    return response()->json(array(0), 404);
+                }
+
+            break;
+
+
+            case "transfer":
+
+                $ototalNow = $this->searchBalance($origin);
+                $dtotalNow = $this->searchBalance($origin);
+      
+               // return response()->json(  array($totalNow,$amount), 201); die();
+
+                //var_dump($totalNow); die();
+                if(!empty($ototalNow)){
+                    $tt = $ototalNow[0]->balance;
+                    if($amount <= $tt){
+                        $this->debitBalance($origin, $amount);
                         $this->depositBalance($destination, $amount);
-                        $array =  array("destination" => array ("id" => $destination, "balance" => $amount),
-                                        "origin" => array ("id" => $origin, "balance" => $amount),                   
+
+
+                        $oB = $this->searchBalance($origin);
+                        $oD = $this->searchBalance($destination);
+
+                        $obalance = !empty($oB)? $oB[0]->balance: 0;
+                        $dbalance = !empty($oD)? $oD[0]->balance: 0;
+                   
+                        $array =  array("destination" => array ("id" => $destination, "balance" => $dbalance),
+                                        "origin"      => array ("id" => $origin,      "balance" => $obalance),                   
                                         "message" => 'Transfer performed sucessfully!' );
                     return response()->json( $array, 201);
 
@@ -83,7 +99,7 @@ class Balance extends Controller
                      
                     }
                 }else{
-                    return response()->json(['message' => 'user not exist!'], 404);
+                    return response()->json(array(0), 404);
                 }
             break;
 
@@ -92,9 +108,11 @@ class Balance extends Controller
                 
                 if(!empty($totalNow)){
                     $this->depositBalance($destination, $amount);
-                    $array =  array("destination" => array ("id" => $destination,
-                                                            "balance" => $amount,)
-                                                            , "message" => 'Deposit performed sucessfully' );
+
+                    $balance = $this->searchBalance($destination);
+                   
+
+                    $array =  array("destination" => array("id" => $destination,"balance" => $balance[0]->balance ));
                     return response()->json( $array, 200);
 
 
@@ -173,7 +191,7 @@ class Balance extends Controller
 
     public function resetTest(request $Request){
         DB::table('balance')->truncate();
-        return response()->json(["messenge" =>"table reseted!"],200);
+        return response()->json(array("OK"),200);
     }
 
 }
