@@ -24,8 +24,11 @@ class Balance extends Controller
         HAVING balance <> 0"
         ));
 
-        
-       return response()->json($Cl,200);
+        if(empty($Cl)){
+            return response()->json(["no client found"],404);
+        } else {
+            return response()->json($Cl,200);
+        }
 
     }
 
